@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "setupWorktree": ["cp \"$ROOT_PROJECT_PATH/.env\" .env", "bun run scripts/init_worktree.ts"],
+  "setupWorktreeWait": false,
+  "projectActions": [
+    { "id": "dev", "name": "Dev", "command": "bun run dev --no-open", "icon": "rocket" },
+    {
+      "id": "dev-full",
+      "name": "Dev Full",
+      "command": "bun run dev:full --no-open",
+      "icon": "rocket"
+    },
+    {
+      "id": "dev-pglite",
+      "name": "Dev Pglite",
+      "command": "bun run dev:pglite --no-open",
+      "icon": "rocket"
+    },
+    {
+      "id": "prep-dev",
+      "name": "Prep Dev",
+      "command": "PLEXUS_URL=http://localhost bun run prep-dev",
+      "icon": "tools"
+    },
+    {
+      "id": "prep-dev-save",
+      "name": "Prep Dev Save",
+      "command": "PLEXUS_URL=http://localhost bun run prep-dev --save",
+      "icon": "tools"
+    },
+    {
+      "id": "prep-dev-live",
+      "name": "Prep Dev Live",
+      "command": "PLEXUS_URL=http://localhost bun run prep-dev --live",
+      "icon": "tools"
+    },
+    {
+      "id": "prep-dev-clear",
+      "name": "Prep Dev Clear",
+      "command": "PLEXUS_URL=http://localhost bun run prep-dev --clear",
+      "icon": "tools"
+    },
+    {
+      "id": "prep-dev-reset",
+      "name": "Prep Dev Reset",
+      "command": "PLEXUS_URL=http://localhost bun run prep-dev --reset",
+      "icon": "tools"
+    },
+    {
+      "id": "rebase-on-main",
+      "name": "Rebase on Main",
+      "command": "git fetch origin main && TARGET=$(if [ \"$(git log -1 --format=%ct refs/heads/main 2>/dev/null || echo 0)\" -ge \"$(git log -1 --format=%ct origin/main 2>/dev/null || echo 0)\" ]; then echo main; else echo origin/main; fi) && BRANCH=$(git rev-parse --abbrev-ref HEAD) && echo \"Rebasing $BRANCH onto $TARGET...\" && if [ \"$BRANCH\" = \"main\" ]; then git merge --ff-only \"$TARGET\"; else git rebase \"$TARGET\"; fi",
+      "icon": "branch",
+      "platforms": ["macos", "linux"]
+    },
+    {
+      "id": "deploy-staging",
+      "name": "Deploy Staging",
+      "command": "bun run deploy:staging",
+      "icon": "server"
+    },
+    { "id": "release", "name": "Release", "command": "bun run release", "icon": "build" }
+  ]
+}
