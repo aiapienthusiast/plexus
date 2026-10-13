@@ -1185,7 +1185,7 @@ packages/backend/src/services/routing/router.ts:572 [method] Router.splitService
 packages/backend/src/services/routing/router.ts:581 [method] Router.resolveCandidates
 packages/backend/src/services/routing/router.ts:63 [function] filterGroupTargets
 packages/backend/src/services/routing/router.ts:681 [method] Router.resolve
-packages/backend/src/services/routing/router.ts:773 [method] Router.resolveDirect
+packages/backend/src/services/routing/router.ts:787 [method] Router.resolveDirect
 packages/backend/src/services/routing/scope-match.ts:15 [interface] ScopeLists
 packages/backend/src/services/routing/scope-match.ts:27 [function] listAllowsAny
 packages/backend/src/services/routing/scope-match.ts:40 [function] listAllows
