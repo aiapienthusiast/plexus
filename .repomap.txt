@@ -1266,7 +1266,8 @@ packages/backend/src/transformers/anthropic/index.ts:40 [method] AnthropicTransf
 packages/backend/src/transformers/anthropic/index.ts:44 [method] AnthropicTransformer.transformStream
 packages/backend/src/transformers/anthropic/index.ts:48 [method] AnthropicTransformer.formatStream
 packages/backend/src/transformers/anthropic/index.ts:55 [method] AnthropicTransformer.extractUsage
-packages/backend/src/transformers/anthropic/request-builder.ts:14 [function] buildAnthropicRequest
+packages/backend/src/transformers/anthropic/request-builder.ts:19 [function] toAnthropicImageSource
+packages/backend/src/transformers/anthropic/request-builder.ts:51 [function] buildAnthropicRequest
 packages/backend/src/transformers/anthropic/request-parser.ts:16 [function] parseAnthropicRequest
 packages/backend/src/transformers/anthropic/response-formatter.ts:13 [function] formatAnthropicResponse
 packages/backend/src/transformers/anthropic/response-transformer.ts:13 [function] transformAnthropicResponse
