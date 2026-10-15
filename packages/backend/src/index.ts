@@ -35,6 +35,7 @@ import mainJsPath from '../../frontend/dist/main.js' with { type: 'file' };
 import mainCssPath from '../../frontend/dist/main.css' with { type: 'file' };
 import fs from 'fs';
 import { logger } from './utils/logger';
+import { closeFetchSessions } from './utils/fetch-sessions';
 import { getConfig } from './config';
 import { ConfigService } from './services/configuration/config-service';
 import { Dispatcher } from './services/dispatch/dispatcher';
@@ -489,6 +490,9 @@ const start = async () => {
       responsesStorage.stopCleanupJob();
       await mcpProcessManager.stopAll();
       await fastify.close();
+      // After the server has drained: in-flight streams may still be reading
+      // from session sockets, so sessions close last.
+      closeFetchSessions();
       const { closeDatabase } = await import('./db/client');
       await closeDatabase();
       logger.info('Shutdown complete');
