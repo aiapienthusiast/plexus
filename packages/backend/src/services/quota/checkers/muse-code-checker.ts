@@ -17,11 +17,12 @@
  * This is the same snapshot the Muse CLI's `/usage` panel renders. The
  * checker therefore sends a minimal streamed probe (`input: "ping"`,
  * `max_output_tokens: 16` — the API floor), reads the first usable frame,
- * and closes the stream. The probe spends one model request against the
- * very window it reports, so successful readings are cached for
- * `probeTtlMs` (default one hour) and only re-probed once the cache ages
- * out; the scheduler interval can be shorter than the cache without
- * burning prompts.
+ * and closes the stream. Every scheduled check probes live: the probe
+ * costs a single minimal request (a few input tokens plus at most 16
+ * output tokens), which is negligible against the 5-hour/weekly windows
+ * it measures, while caching the reading would report stale utilization
+ * with a fresh timestamp. `intervalMinutes` on the scheduler is the
+ * single knob for probe frequency — raise it to probe less often.
  *
  * Auth is the subscription-minted Model API key (pi-ai's meta credential
  * stores it as `access`), resolved through `OAuthAuthManager.getApiKey`,
@@ -51,9 +52,6 @@ const MUSE_DEFAULT_MODEL = 'muse-spark-1.3';
 const MUSE_PROBE_MAX_OUTPUT_TOKENS = 16;
 const MUSE_PROBE_REASONING_EFFORT = 'minimal';
 const MUSE_PROBE_INPUT = 'ping';
-/** Successful readings are reused for this long; one probe per window is costly. */
-const MUSE_DEFAULT_PROBE_TTL_MS = 60 * 60 * 1000;
-
 interface MuseUsageWindow {
   used_percent?: number;
   resets_at?: string | number;
@@ -74,14 +72,6 @@ class MuseAuthError extends Error {
     );
     this.name = 'MuseAuthError';
   }
-}
-
-/** Readings keyed by checker, reused until the probe TTL ages out. */
-const probeCache = new Map<string, { at: number; meters: Meter[] }>();
-
-/** Drop cached readings; the scheduler persists its own snapshots. */
-export function resetMuseCodeCheckerCacheForTesting(): void {
-  probeCache.clear();
 }
 
 async function resolveApiKey(
@@ -368,21 +358,12 @@ export default defineChecker({
     oauthProvider: z.string().optional(),
     endpoint: z.string().url().optional(),
     model: z.string().optional(),
-    probeTtlMs: z.number().int().nonnegative().optional(),
     timeoutMs: z.number().int().positive().optional(),
   }),
   async check(ctx) {
     const endpoint = ctx.getOption<string>('endpoint', MUSE_RESPONSES_URL);
     const timeoutMs = ctx.getOption<number>('timeoutMs', 15000);
     const model = ctx.getOption<string>('model', MUSE_DEFAULT_MODEL);
-    const probeTtlMs = ctx.getOption<number>('probeTtlMs', MUSE_DEFAULT_PROBE_TTL_MS);
-
-    if (probeTtlMs > 0) {
-      const cached = probeCache.get(ctx.checkerId);
-      if (cached && Date.now() - cached.at < probeTtlMs) {
-        return [...cached.meters];
-      }
-    }
 
     const isOAuth = !ctx.getOption<string>('apiKey', '').trim();
     let apiKey = await resolveApiKey(ctx);
@@ -438,9 +419,6 @@ export default defineChecker({
       throw new Error('Muse Code usage probe carried no usable windows');
     }
 
-    if (probeTtlMs > 0) {
-      probeCache.set(ctx.checkerId, { at: Date.now(), meters });
-    }
     return meters;
   },
 });
