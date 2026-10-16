@@ -11,8 +11,8 @@
  *     placeholder frames that carry no reading;
  *   - the probe sends the subscription-minted key as Bearer, resolved from
  *     the configured OAuth account, or from an explicitly configured key;
- *   - successful readings are cached for the probe TTL so the scheduler
- *     interval never re-probes inside it;
+ *   - every scheduled check probes Meta live, so the scheduler interval
+ *     alone controls freshness (no internal cache replays stale values);
  *   - auth failures, throttling, an absent snapshot, and unusable payloads
  *     throw (surfacing an error state in the UI) instead of publishing
  *     zeroed meters.
@@ -22,7 +22,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { registerSpy } from '../../../../test/test-utils';
 import { OAuthAuthManager } from '../../oauth/oauth-auth-manager';
 import { createMeterContext } from '../checker-registry';
-import checker, { resetMuseCodeCheckerCacheForTesting } from '../checkers/muse-code-checker';
+import checker from '../checkers/muse-code-checker';
 
 const CHECKER_ID = 'muse-quota-test';
 const MINTED_KEY = 'mk_live_abc';
@@ -61,12 +61,10 @@ describe('muse-code quota checker', () => {
 
   beforeEach(() => {
     OAuthAuthManager.resetForTesting();
-    resetMuseCodeCheckerCacheForTesting();
     getApiKey = registerSpy(OAuthAuthManager.getInstance(), 'getApiKey').mockResolvedValue(
       MINTED_KEY
     );
-    // Fresh Response per call: a Response body is single-use, and the
-    // TTL-disabled test probes twice.
+    // Fresh Response per call: a Response body is single-use.
     fetchSpy = registerSpy(globalThis, 'fetch').mockImplementation(async () =>
       sseResponse(subscriptionFrame(SUBSCRIPTION))
     );
@@ -74,7 +72,6 @@ describe('muse-code quota checker', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
-    resetMuseCodeCheckerCacheForTesting();
     OAuthAuthManager.resetForTesting();
   });
 
@@ -251,16 +248,8 @@ describe('muse-code quota checker', () => {
     await expect(checker.check(ctx)).rejects.toThrow(/no subscription snapshot/);
   });
 
-  it('reuses a cached reading inside the probe TTL', async () => {
+  it('probes live on every check so readings match the scheduler interval', async () => {
     const ctx = createMeterContext(CHECKER_ID, 'meta', { apiKey: 'dca_tok' });
-
-    await checker.check(ctx);
-    await checker.check(ctx);
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-  });
-
-  it('re-probes when the probe TTL is disabled', async () => {
-    const ctx = createMeterContext(CHECKER_ID, 'meta', { apiKey: 'dca_tok', probeTtlMs: 0 });
 
     await checker.check(ctx);
     await checker.check(ctx);
