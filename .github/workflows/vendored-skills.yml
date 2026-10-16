@@ -1,0 +1,60 @@
+name: Vendored skills refresh
+
+# Weekly refresh of vendored project skills (see skills-lock.json /
+# .agents/skills; .claude is a symlink to .agents). Opens a PR that auto-merges via --auto
+# (waits for CI), so updates land on main without manual intervention.
+on:
+  schedule:
+    - cron: "0 9 * * 1" # Mondays 09:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: vendored-skills
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Create GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.REPOMAP_APP_ID }}
+          private-key: ${{ secrets.REPOMAP_APP_PRIVATE_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.3
+
+      - name: Refresh project skills
+        run: bunx --package skills@latest skills update -y
+
+      - name: Open auto-merging PR
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          if [ -z "$(git status --porcelain -- .agents/skills skills-lock.json)" ]; then
+            echo "No skill updates."
+            exit 0
+          fi
+          BRANCH="chore/refresh-vendored-skills"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$BRANCH"
+          git add .agents/skills skills-lock.json
+          git commit -m "chore: refresh vendored skills"
+          git push -f origin "$BRANCH"
+          PR_URL="$(gh pr create --fill --base main --head "$BRANCH" 2>/dev/null || gh pr view "$BRANCH" --json url -q .url)"
+          gh pr merge --auto --squash "$PR_URL"
