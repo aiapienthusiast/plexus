@@ -334,6 +334,22 @@ export const TargetGroupEditor: React.FC<TargetGroupEditorProps> = ({
                           )
                         )
                     );
+                // A target can reference a model that is no longer (or never was)
+                // listed on its provider (e.g. pruned provider models, OpenRouter-style
+                // passthrough). Without a matching <option>, the <select> falls back
+                // to the "Model..." placeholder and the configured value looks lost.
+                // Keep the current value visible so it can be reviewed and saved.
+                if (
+                  !isAliasTarget &&
+                  target.model &&
+                  !modelOptions.some((model) => model.id === target.model)
+                ) {
+                  modelOptions.unshift({
+                    id: target.model,
+                    providerId: target.provider ?? '',
+                    name: `${target.model} (not on provider)`,
+                  });
+                }
 
                 return (
                   <div
