@@ -68,6 +68,15 @@ describe('deriveShortName', () => {
     ['text-embedding-3-small', 'openai/text-embedding-3-small', 'Text Embedding 3 Small'],
     ['gpt-image-2', 'openai/gpt-image-2', 'GPT Image 2'],
     ['gpt-oss-120b', 'openai/gpt-oss-120b', 'GPT OSS 120B'],
+    // Id variant suffixes select routing, not a different model
+    ['openai/gpt-4o:free', undefined, 'GPT 4o'],
+    ['anthropic/claude-sonnet-5-5:beta', undefined, 'Sonnet 5.5'],
+    ['deepseek/deepseek-v4.1-flash:nitro', undefined, 'DS 4.1 F'],
+    ['openai/gpt-4o-mini:batch', undefined, 'GPT 4o Mini'],
+    // Generation branding keeps its case; sizes still uppercase
+    ['gpt-4o', 'openai/gpt-4o', 'GPT 4o'],
+    ['gpt-4o-mini', 'openai/gpt-4o-mini', 'GPT 4o Mini'],
+    ['qwen3.8-2.4t-a95b', 'qwen/qwen3.8-2.4t-a95b', 'Qwen3.8 2.4T A95B'],
   ])('derives %j → %j', (name, id, expected) => {
     expect(deriveShortName(name, id)).toBe(expected);
   });

@@ -72,15 +72,28 @@ function humanizeSlug(value: string): string {
   ) {
     segment = dotParts.slice(1).join('.');
   }
-  return segment
-    .split(/[-_]+/)
-    .filter(Boolean)
+  // Rejoin versions split across hyphens: `claude-sonnet-5-5` → `5.5`.
+  // Only runs of pure-digit tokens qualify, so `text-embedding-3-small`
+  // and `qwen2-5-32b` are unaffected.
+  const rawTokens = segment.split(/[-_]+/).filter(Boolean);
+  const tokens: string[] = [];
+  for (const token of rawTokens) {
+    const prev = tokens.at(-1);
+    if (prev !== undefined && /^\d+$/.test(prev) && /^\d+$/.test(token)) {
+      tokens[tokens.length - 1] = `${prev}.${token}`;
+    } else {
+      tokens.push(token);
+    }
+  }
+  return tokens
     .map((token) => `${token[0]?.toUpperCase()}${token.slice(1)}`)
     .map((token) => {
       const acronym = SLUG_ACRONYMS[token.toLowerCase()];
       if (acronym) return acronym;
       // Size tokens: `120b` → `120B`, `a95b` → `A95B`, `2.4t` → `2.4T`.
-      if (/^(\d[\d.]*[a-z]{1,2}|[a-z]\d+[a-z]{1,2})$/i.test(token)) {
+      // Only parameter-size suffixes qualify — model generations like `4o`
+      // or `3n` keep their branding case.
+      if (/^(\d[\d.]*[bmtk]|[a-z]\d+[bmtk])$/i.test(token)) {
         return token.toUpperCase();
       }
       return token;
@@ -109,13 +122,24 @@ export function deriveShortName(name?: string, modelId?: string): string | undef
 
   let working = trimmedName;
   if (!working && trimmedId) {
-    working = humanizeSlug(trimmedId);
-  } else if (working && looksLikeSlug(working)) {
+    working = trimmedId;
+  }
+  // Strip OpenRouter-style `:variant` id suffixes (`:free`, `:batch`,
+  // `:nitro`, …) from spaceless slugs before humanizing. They select
+  // routing, not a different model, and the colon would otherwise confuse
+  // vendor detection below. Display names always separate vendor with
+  // `': '` (colon + whitespace), so they never match.
+  if (working && !working.includes(' ') && looksLikeSlug(working)) {
+    working = working.replace(/:[a-z0-9-]+$/i, '');
+  }
+  if (working && looksLikeSlug(working)) {
     // Slug-style name (Muse OAuth `name === id`, lowercase catalog names
     // like `o4-mini`): humanize before shortening.
     working = humanizeSlug(working);
   }
   if (!working) return undefined;
+
+  // Strip `:batch` / ` (batch)` / ` (free)` suffixes.
 
   // Strip `:batch` / ` (batch)` / ` (free)` suffixes.
   working = working
@@ -125,14 +149,13 @@ export function deriveShortName(name?: string, modelId?: string): string | undef
   if (!working) return trimmedName;
 
   // Strip a leading `Vendor: ` prefix (OpenRouter dialect), remembering it.
+  // The whitespace after the colon is required: ids use bare `:variant`
+  // suffixes (stripped above), never `Vendor: Name` form.
   let vendor = '';
-  const colonIdx = working.indexOf(':');
-  if (colonIdx > 0) {
-    const remainder = working.slice(colonIdx + 1).trim();
-    if (remainder) {
-      vendor = working.slice(0, colonIdx).trim();
-      working = remainder;
-    }
+  const vendorMatch = working.match(/^([^:]+):\s+(.+)$/);
+  if (vendorMatch) {
+    vendor = vendorMatch[1]!.trim();
+    working = vendorMatch[2]!.trim();
   }
   const vendorIsDeepSeek = /deepseek/i.test(vendor);
 
