@@ -32,6 +32,8 @@ const SUPPORTED_PARAM_SUGGESTIONS = [
 interface Props {
   overrides: MetadataOverrides;
   isCustom: boolean;
+  /** Derived default shown as placeholder; blank input falls back to it. */
+  shortNamePlaceholder?: string;
   onSetField: <K extends keyof MetadataOverrides>(
     key: K,
     value: MetadataOverrides[K] | undefined
@@ -78,6 +80,7 @@ const parseIntOrUndef = (s: string): number | undefined => {
 export function MetadataOverrideForm({
   overrides,
   isCustom,
+  shortNamePlaceholder,
   onSetField,
   onSetPricing,
   onSetArchitecture,
@@ -90,7 +93,12 @@ export function MetadataOverrideForm({
   return (
     <div
       className="rounded-sm border border-border-glass bg-bg-subtle"
-      style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '12px' }}
+      style={{
+        padding: '10px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+      }}
     >
       <p className="font-body text-[11px] text-text-muted" style={{ marginBottom: 0 }}>
         {helperText}
@@ -99,7 +107,13 @@ export function MetadataOverrideForm({
       {/* Basic */}
       <div>
         <SectionLabel>Basic</SectionLabel>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '8px',
+          }}
+        >
           <div>
             <FieldLabel>Name</FieldLabel>
             <Input
@@ -108,6 +122,17 @@ export function MetadataOverrideForm({
                 onSetField('name', e.target.value === '' ? undefined : e.target.value)
               }
               placeholder="Display name"
+            />
+          </div>
+          <div>
+            <FieldLabel>Short name</FieldLabel>
+            <Input
+              value={overrides.short_name ?? ''}
+              maxLength={64}
+              onChange={(e) =>
+                onSetField('short_name', e.target.value.trim() === '' ? undefined : e.target.value)
+              }
+              placeholder={shortNamePlaceholder ?? 'Auto-derived from name'}
             />
           </div>
           <div>
@@ -136,7 +161,13 @@ export function MetadataOverrideForm({
       {/* Pricing */}
       <div>
         <SectionLabel>Pricing ($/token)</SectionLabel>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '8px',
+          }}
+        >
           <div>
             <FieldLabel>Prompt</FieldLabel>
             <Input
@@ -186,7 +217,13 @@ export function MetadataOverrideForm({
       {/* Architecture */}
       <div>
         <SectionLabel>Architecture</SectionLabel>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '8px',
+          }}
+        >
           <div>
             <FieldLabel>Input modalities</FieldLabel>
             <TagSelect
@@ -240,7 +277,13 @@ export function MetadataOverrideForm({
               }
             />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '8px',
+            }}
+          >
             <div>
               <FieldLabel>Top provider context length</FieldLabel>
               <Input

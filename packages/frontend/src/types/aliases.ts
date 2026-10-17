@@ -24,6 +24,7 @@ export type MetadataSource = CatalogMetadataSource | 'auto' | 'disabled' | 'cust
 
 export interface MetadataOverrides {
   name?: string;
+  short_name?: string;
   description?: string;
   context_length?: number;
   pricing?: {
@@ -51,6 +52,7 @@ export interface MetadataOverrides {
 export interface NormalizedModelMetadata {
   id: string;
   name: string;
+  short_name?: string;
   description?: string;
   context_length?: number;
   architecture?: {
@@ -208,6 +210,7 @@ export interface ModelResolutionPreview {
     source: CatalogMetadataSource | 'heuristic';
     source_path?: string;
     name: string;
+    short_name: string | null;
   } | null;
   preferred_api: PreferredApiValue[] | null;
 }

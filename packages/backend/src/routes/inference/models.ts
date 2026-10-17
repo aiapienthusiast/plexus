@@ -12,6 +12,7 @@ import {
   resolveModelMetadata,
   resolvePreferredApi,
 } from '../../services/models/model-metadata-manager';
+import { deriveShortName } from '../../services/models/short-name';
 import { getCatalogModel } from '../../services/pi-ai/catalog';
 import { resolveAliasServiceTiers } from '../../services/models/alias-service-tiers';
 import {
@@ -275,6 +276,7 @@ export async function registerModelsRoute(fastify: FastifyInstance) {
       const result: Record<string, unknown> = {
         ...base,
         name: enriched.name,
+        ...(enriched.short_name !== undefined && { short_name: enriched.short_name }),
         ...(enriched.description !== undefined && { description: enriched.description }),
         ...(enriched.context_length !== undefined && { context_length: enriched.context_length }),
         ...(enriched.architecture !== undefined && { architecture: enriched.architecture }),
@@ -440,7 +442,10 @@ export async function registerModelsRoute(fastify: FastifyInstance) {
       });
     }
 
-    return reply.send({ data: metadata });
+    // Attach the derived default (copied, never mutating the catalog map) so
+    // the frontend override form can show and pre-fill it.
+    const shortName = deriveShortName(metadata.name, metadata.id);
+    return reply.send({ data: { ...metadata, ...(shortName && { short_name: shortName }) } });
   });
 
   /**

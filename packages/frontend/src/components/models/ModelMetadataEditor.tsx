@@ -39,6 +39,7 @@ export function ModelMetadataEditor({ editingAlias, setEditingAlias, isModalOpen
   const {
     isOverrideOpen,
     setIsOverrideOpen,
+    catalogShortName,
     metadataQuery,
     metadataResults,
     isMetadataSearching,
@@ -786,6 +787,11 @@ export function ModelMetadataEditor({ editingAlias, setEditingAlias, isModalOpen
                       <MetadataOverrideForm
                         overrides={metadataOverrides ?? {}}
                         isCustom={metadataSource === 'custom'}
+                        shortNamePlaceholder={
+                          metadataSource === 'auto'
+                            ? (automaticResolution?.metadata?.short_name ?? undefined)
+                            : (catalogShortName ?? undefined)
+                        }
                         onSetField={setOverrideField}
                         onSetPricing={setPricingField}
                         onSetArchitecture={setArchitectureField}

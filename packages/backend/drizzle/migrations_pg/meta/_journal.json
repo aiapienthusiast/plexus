@@ -645,6 +645,13 @@
       "when": 1791083616430,
       "tag": "0091_add_oauth_enterprise_url",
       "breakpoints": true
+    },
+    {
+      "idx": 92,
+      "version": "7",
+      "when": 1792267503827,
+      "tag": "0092_add_alias_short_name",
+      "breakpoints": true
     }
   ]
 }

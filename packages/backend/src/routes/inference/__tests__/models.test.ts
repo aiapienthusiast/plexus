@@ -746,6 +746,74 @@ describe('GET /v1/models – with metadata', () => {
     ]);
   });
 
+  it('derives short_name from the catalog name when no override is set', async () => {
+    const mgr = ModelMetadataManager.getInstance();
+    await mgr.loadAll({
+      openrouter: openrouterMetadataFixture,
+      modelsDev: '/nonexistent',
+      catwalk: '/nonexistent',
+    });
+
+    const fastify = Fastify();
+    await registerModelsRoute(fastify);
+    setConfigForTesting({
+      models: {
+        'claude-alias': {
+          targets: [],
+          metadata: {
+            source: 'openrouter',
+            source_path: 'anthropic/claude-3.5-sonnet',
+          },
+        },
+      },
+    } as unknown as PlexusConfig);
+
+    const response = await fastify.inject({ method: 'GET', url: '/v1/models' });
+    expect(response.statusCode).toBe(200);
+    const model = response.json().data[0];
+    expect(model.name).toBe('Anthropic: Claude 3.5 Sonnet');
+    expect(model.short_name).toBe('3.5 Sonnet');
+  });
+
+  it('prefers an explicit short_name override over the derived default', async () => {
+    const mgr = ModelMetadataManager.getInstance();
+    await mgr.loadAll({
+      openrouter: openrouterMetadataFixture,
+      modelsDev: '/nonexistent',
+      catwalk: '/nonexistent',
+    });
+
+    const fastify = Fastify();
+    await registerModelsRoute(fastify);
+    setConfigForTesting({
+      models: {
+        'claude-alias': {
+          targets: [],
+          metadata: {
+            source: 'openrouter',
+            source_path: 'anthropic/claude-3.5-sonnet',
+            overrides: { short_name: 'Sonnet L' },
+          },
+        },
+        'custom-alias': {
+          targets: [],
+          metadata: {
+            source: 'custom',
+            overrides: { name: 'DeepSeek: DeepSeek V4.1 Flash', short_name: '  ' },
+          },
+        },
+      },
+    } as unknown as PlexusConfig);
+
+    const response = await fastify.inject({ method: 'GET', url: '/v1/models' });
+    expect(response.statusCode).toBe(200);
+    const byId = Object.fromEntries(response.json().data.map((m: any) => [m.id, m]));
+    // Explicit override wins.
+    expect(byId['claude-alias'].short_name).toBe('Sonnet L');
+    // Blank override falls back to the derived default.
+    expect(byId['custom-alias'].short_name).toBe('DS 4.1 F');
+  });
+
   it('should return base fields when metadata source_path is not found in catalog', async () => {
     const mgr = ModelMetadataManager.getInstance();
     await mgr.loadAll({

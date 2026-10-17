@@ -47,6 +47,13 @@ export function useMetadataEditor(
     undefined
   );
 
+  // Derived short name from the catalog lookup (`short_name` on the lookup
+  // response). Display-only: shown as the Short name placeholder so the
+  // backend keeps deriving it. Never merged into overrides — persisting it
+  // would freeze the derived value and block re-derivation when `name` or
+  // the heuristic changes.
+  const [catalogShortName, setCatalogShortName] = useState<string | undefined>(undefined);
+
   // ── Helpers (pure) ─────────────────────────────────────────────────
 
   const cancelMetadataDebounce = useCallback(() => {
@@ -67,7 +74,10 @@ export function useMetadataEditor(
     };
   }, []);
 
-  /** Convert a catalog metadata record into the MetadataOverrides shape. */
+  /** Convert a catalog metadata record into the MetadataOverrides shape.
+   * `short_name` is intentionally excluded: the lookup value is derived,
+   * not authoritative — copying it would store an explicit override that
+   * never re-derives. The UI shows it as a placeholder instead. */
   const metadataToOverrides = useCallback((meta: NormalizedModelMetadata): MetadataOverrides => {
     const out: MetadataOverrides = {};
     if (meta.name) out.name = meta.name;
@@ -175,6 +185,7 @@ export function useMetadataEditor(
       try {
         const catalog = await api.getModelMetadata(source, sourcePath);
         if (!catalog) return;
+        setCatalogShortName(catalog.short_name ?? undefined);
         const catalogOverrides = metadataToOverrides(catalog);
         setEditingAlias((prev) => {
           if (!prev.metadata || prev.metadata.source === 'custom') return prev;
@@ -382,6 +393,7 @@ export function useMetadataEditor(
       };
       let n = 0;
       if (o.name !== undefined && o.name !== ref.name) n++;
+      if (o.short_name !== undefined && o.short_name !== ref.short_name) n++;
       if (o.description !== undefined && o.description !== ref.description) n++;
       if (o.context_length !== undefined && o.context_length !== ref.context_length) n++;
       if (o.pricing) {
@@ -464,6 +476,7 @@ export function useMetadataEditor(
       !meta.source_path
     ) {
       setCatalogReference(undefined);
+      setCatalogShortName(undefined);
       return;
     }
     const { source, source_path } = meta;
@@ -473,6 +486,7 @@ export function useMetadataEditor(
         const catalog = await api.getModelMetadata(source, source_path);
         if (cancelled) return;
         setCatalogReference(catalog ? metadataToOverrides(catalog) : null);
+        setCatalogShortName(catalog?.short_name ?? undefined);
       } catch {
         if (!cancelled) setCatalogReference(null);
       }
@@ -492,6 +506,7 @@ export function useMetadataEditor(
     // State
     isOverrideOpen,
     setIsOverrideOpen,
+    catalogShortName,
     metadataQuery,
     metadataResults,
     isMetadataSearching,

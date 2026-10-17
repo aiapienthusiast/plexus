@@ -73,6 +73,7 @@ interface AliasMetadataOverrideRow {
   id: number;
   aliasId: number;
   name: string | null;
+  shortName: string | null;
   description: string | null;
   contextLength: number | null;
   pricingPrompt: string | null;
@@ -417,6 +418,7 @@ export class AliasRepository {
         await transaction.insert(schema.aliasMetadataOverrides).values({
           aliasId,
           name: overrides.name ?? null,
+          shortName: overrides.short_name ?? null,
           description: overrides.description ?? null,
           contextLength: overrides.context_length ?? null,
           pricingPrompt: overrides.pricing?.prompt ?? null,

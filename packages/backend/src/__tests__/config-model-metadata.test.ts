@@ -43,4 +43,26 @@ describe('ModelConfigSchema metadata modes', () => {
 
     expect(config.models['test-alias']?.metadata).toEqual({ source: 'disabled' });
   });
+
+  it('accepts a short_name override and trims it', () => {
+    const config = validateConfig(
+      configWithMetadata({ source: 'auto', overrides: { short_name: '  Sonnet 5.5  ' } })
+    );
+
+    expect(config.models['test-alias']?.metadata).toEqual({
+      source: 'auto',
+      overrides: { short_name: 'Sonnet 5.5' },
+    });
+  });
+
+  it('rejects blank and over-long short_name overrides', () => {
+    expect(() =>
+      validateConfig(configWithMetadata({ source: 'auto', overrides: { short_name: '   ' } }))
+    ).toThrow();
+    expect(() =>
+      validateConfig(
+        configWithMetadata({ source: 'auto', overrides: { short_name: 'x'.repeat(65) } })
+      )
+    ).toThrow();
+  });
 });
