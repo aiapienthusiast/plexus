@@ -32,6 +32,12 @@ properties:
     type: string
     description: >
       Display name (e.g. "OpenAI: GPT-4.1 Nano").
+  short_name:
+    type: string
+    description: >
+      Compact display label (e.g. "Sonnet 5.5"). Explicitly configured
+      via the alias `metadata.overrides.short_name`, otherwise
+      deterministically derived from `name`.
   description:
     type: string
     description: Model description from metadata.

@@ -585,6 +585,7 @@ const MetadataTopProviderOverridesSchema = z
 
 const MetadataOverridesSchema = z.object({
   name: z.string().optional(),
+  short_name: z.string().trim().min(1).max(64).optional(),
   description: z.string().optional(),
   context_length: z.number().int().positive().optional(),
   pricing: MetadataPricingOverridesSchema.optional(),

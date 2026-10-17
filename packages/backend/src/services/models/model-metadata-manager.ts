@@ -1,4 +1,5 @@
 import { logger } from '../../utils/logger';
+import { deriveShortName } from './short-name';
 import type {
   MetadataOverrides,
   ModelConfig,
@@ -50,6 +51,8 @@ export interface NormalizedModelMetadata {
   id: string;
   /** Human-readable display name */
   name: string;
+  /** Compact display label; explicit override wins, otherwise derived from `name` */
+  short_name?: string;
   /** Model description */
   description?: string;
   /** Maximum context window in tokens */
@@ -876,6 +879,7 @@ export function mergeOverrides(
   const merged: NormalizedModelMetadata = {
     id: base?.id ?? '',
     name: base?.name ?? '',
+    ...(base?.short_name !== undefined && { short_name: base.short_name }),
     ...(base?.description !== undefined && { description: base.description }),
     ...(base?.context_length !== undefined && { context_length: base.context_length }),
     ...(base?.architecture !== undefined && { architecture: { ...base.architecture } }),
@@ -887,6 +891,10 @@ export function mergeOverrides(
   };
 
   if (overrides.name !== undefined) merged.name = overrides.name;
+  if (overrides.short_name !== undefined) {
+    const shortName = overrides.short_name.trim();
+    if (shortName) merged.short_name = shortName;
+  }
   if (overrides.description !== undefined) merged.description = overrides.description;
   if (overrides.context_length !== undefined) merged.context_length = overrides.context_length;
 
@@ -1081,6 +1089,16 @@ export function resolveAutomaticModelIdentity(
   return { provider: inferProviderFromModel(aliasId), model: aliasId, basis: 'alias' };
 }
 
+/**
+ * Fill `metadata.short_name` from `metadata.name` when no explicit override
+ * set one. Explicit values (applied by `mergeOverrides`) always win.
+ */
+function withDefaultShortName(metadata: NormalizedModelMetadata, idHint?: string): void {
+  if (metadata.short_name !== undefined || !metadata.name) return;
+  const derived = deriveShortName(metadata.name, idHint ?? metadata.id);
+  if (derived) metadata.short_name = derived;
+}
+
 export function resolveModelMetadata(
   aliasId: string,
   modelConfig: ModelConfig,
@@ -1092,6 +1110,7 @@ export function resolveModelMetadata(
 
   if (configured?.source === 'custom') {
     const metadata = mergeOverrides(undefined, configured.overrides);
+    if (metadata) withDefaultShortName(metadata, aliasId);
     return metadata
       ? { metadata: applyConfiguredModelType(metadata, modelConfig.type), source: 'heuristic' }
       : undefined;
@@ -1104,6 +1123,7 @@ export function resolveModelMetadata(
   ) {
     const catalog = manager.getMetadata(configured.source, configured.source_path);
     const metadata = catalog ? mergeOverrides(catalog, configured.overrides) : undefined;
+    if (metadata) withDefaultShortName(metadata, metadata.id || configured.source_path);
     return metadata
       ? {
           metadata: applyConfiguredModelType(metadata, modelConfig.type),
@@ -1119,6 +1139,7 @@ export function resolveModelMetadata(
     : undefined;
   if (exact) {
     const metadata = mergeOverrides(exact.metadata, configured?.overrides);
+    if (metadata) withDefaultShortName(metadata, metadata.id || identity.model);
     return metadata
       ? { ...exact, metadata: applyConfiguredModelType(metadata, modelConfig.type) }
       : undefined;
@@ -1130,6 +1151,7 @@ export function resolveModelMetadata(
     architecture: inferArchitecture(identity.model, modelConfig.type),
   };
   const metadata = mergeOverrides(heuristic, configured?.overrides);
+  if (metadata) withDefaultShortName(metadata, metadata.id || identity.model);
   return metadata
     ? { metadata: applyConfiguredModelType(metadata, modelConfig.type), source: 'heuristic' }
     : undefined;

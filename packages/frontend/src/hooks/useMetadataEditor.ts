@@ -71,6 +71,7 @@ export function useMetadataEditor(
   const metadataToOverrides = useCallback((meta: NormalizedModelMetadata): MetadataOverrides => {
     const out: MetadataOverrides = {};
     if (meta.name) out.name = meta.name;
+    if (meta.short_name) out.short_name = meta.short_name;
     if (meta.description !== undefined) out.description = meta.description;
     if (meta.context_length !== undefined && meta.context_length > 0) {
       out.context_length = meta.context_length;
@@ -382,6 +383,7 @@ export function useMetadataEditor(
       };
       let n = 0;
       if (o.name !== undefined && o.name !== ref.name) n++;
+      if (o.short_name !== undefined && o.short_name !== ref.short_name) n++;
       if (o.description !== undefined && o.description !== ref.description) n++;
       if (o.context_length !== undefined && o.context_length !== ref.context_length) n++;
       if (o.pricing) {

@@ -786,6 +786,11 @@ export function ModelMetadataEditor({ editingAlias, setEditingAlias, isModalOpen
                       <MetadataOverrideForm
                         overrides={metadataOverrides ?? {}}
                         isCustom={metadataSource === 'custom'}
+                        shortNamePlaceholder={
+                          metadataSource === 'auto'
+                            ? (automaticResolution?.metadata?.short_name ?? undefined)
+                            : undefined
+                        }
                         onSetField={setOverrideField}
                         onSetPricing={setPricingField}
                         onSetArchitecture={setArchitectureField}

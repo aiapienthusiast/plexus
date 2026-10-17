@@ -61,6 +61,7 @@ export async function registerModelRoutes(fastify: FastifyInstance) {
             source: resolved.source,
             source_path: resolved.sourcePath,
             name: resolved.metadata.name,
+            short_name: resolved.metadata.short_name ?? null,
           }
         : null,
       preferred_api: resolvePreferredApi(body.alias_id, parsed.data, providers) ?? null,

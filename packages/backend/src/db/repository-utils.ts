@@ -85,6 +85,7 @@ export function decryptJsonField<T>(value: unknown): T | null {
 
 export function hasAnyOverrideField(overrides: MetadataOverrides): boolean {
   if (overrides.name !== undefined) return true;
+  if (overrides.short_name !== undefined) return true;
   if (overrides.description !== undefined) return true;
   if (overrides.context_length !== undefined) return true;
   if (overrides.pricing && Object.values(overrides.pricing).some((value) => value !== undefined)) {
@@ -107,6 +108,7 @@ export function hasAnyOverrideField(overrides: MetadataOverrides): boolean {
 
 interface MetadataOverrideRow {
   name: string | null;
+  shortName: string | null;
   description: string | null;
   contextLength: number | null;
   pricingPrompt: string | null;
@@ -125,6 +127,7 @@ interface MetadataOverrideRow {
 export function overrideRowToOverrides(row: MetadataOverrideRow): MetadataOverrides {
   const overrides: MetadataOverrides = {};
   if (row.name != null) overrides.name = row.name;
+  if (row.shortName != null) overrides.short_name = row.shortName;
   if (row.description != null) overrides.description = row.description;
   if (row.contextLength != null) overrides.context_length = row.contextLength;
 

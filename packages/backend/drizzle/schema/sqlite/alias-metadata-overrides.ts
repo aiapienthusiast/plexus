@@ -9,6 +9,7 @@ export const aliasMetadataOverrides = sqliteTable(
       .notNull()
       .references(() => modelAliases.id, { onDelete: 'cascade' }),
     name: text('name'),
+    shortName: text('short_name'),
     description: text('description'),
     contextLength: integer('context_length'),
     pricingPrompt: text('pricing_prompt'),

@@ -87,7 +87,7 @@ describe('management model routes', () => {
     expect(response.json()).toEqual({
       canonical_model: { provider: 'openai', model: 'gpt-5.2', basis: 'target' },
       pi_model: { provider: 'openai', model_id: 'gpt-5.2', name: 'gpt-5.2' },
-      metadata: { source: 'heuristic', name: 'GPT 5 2' },
+      metadata: { source: 'heuristic', name: 'GPT 5 2', short_name: 'GPT 5 2' },
       preferred_api: ['responses'],
     });
   });

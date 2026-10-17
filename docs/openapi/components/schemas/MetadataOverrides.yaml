@@ -9,6 +9,14 @@ properties:
     description: >
       Human-readable model name. Required when `metadata.source` is
       `custom` (no catalog fallback).
+  short_name:
+    type: string
+    minLength: 1
+    maxLength: 64
+    description: >
+      Compact display label advertised as `short_name` in `GET /v1/models`.
+      When omitted, Plexus deterministically derives one from `name`
+      (e.g. "Claude Sonnet 5.5" becomes "Sonnet 5.5").
   description:
     type: string
     description: Short description of the model.
