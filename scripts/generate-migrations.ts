@@ -77,7 +77,7 @@ const SQLITE_MIGRATIONS_DIR = join('packages', 'backend', 'drizzle', 'migrations
 const beforeSqlite = new Set(listSqlFiles(SQLITE_MIGRATIONS_DIR));
 
 console.log(`Generating SQLite migrations with name: ${name}`);
-await $`cd packages/backend && node node_modules/drizzle-kit/bin.cjs generate --name ${name} --config drizzle.config.sqlite.ts`;
+await $`cd packages/backend && bun node_modules/drizzle-kit/bin.cjs generate --name ${name} --config drizzle.config.sqlite.ts`;
 
 // drizzle-kit's SQLite table-recreation codegen references new columns in the
 // `INSERT ... SELECT` that don't exist on the source table. Under SQLite's
@@ -86,7 +86,7 @@ await $`cd packages/backend && node node_modules/drizzle-kit/bin.cjs generate --
 postProcessSqliteMigrations(SQLITE_MIGRATIONS_DIR, beforeSqlite);
 
 console.log(`Generating Postgres migrations with name: ${name}`);
-await $`cd packages/backend && node node_modules/drizzle-kit/bin.cjs generate --name ${name} --config drizzle.config.postgres.ts`;
+await $`cd packages/backend && bun node_modules/drizzle-kit/bin.cjs generate --name ${name} --config drizzle.config.postgres.ts`;
 
 console.log('Done!');
 

@@ -7,8 +7,6 @@ bun = "1.4.3"
 "github:fatedier/frp" = "latest"
 "github:universal-ctags/ctags-nightly-build" = "latest"
 lefthook = "latest"
-node = "24"
-"npm:greptile" = "latest"
 
 [env]
 _.path = ["./node_modules/.bin"]

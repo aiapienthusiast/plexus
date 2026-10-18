@@ -47,11 +47,11 @@ pre-commit:
         - "packages/backend/drizzle/migrations/**"
         - "packages/backend/drizzle/migrations_pg/**"
         - "packages/backend/src/assets/openapi.json"
-      run: bunx biome format --write {staged_files} && git add {staged_files}
+      run: bunx --bun biome format --write {staged_files} && git add {staged_files}
 
     # --- Biome: lint all sources ---------------------------------------------
     biome-lint:
-      run: bunx biome lint .
+      run: bunx --bun biome lint .
 
     # --- TypeScript type-check across all packages ---------------------------
     typecheck:

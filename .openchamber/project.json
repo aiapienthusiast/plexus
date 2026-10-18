@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "setupWorktree": ["cp \"$ROOT_PROJECT_PATH/.env\" .env", "bun run scripts/init_worktree.ts"],
+  "setupWorktree": ["cp \"$ROOT_PROJECT_PATH/.env\" .env", "sh scripts/init_worktree.sh"],
   "setupWorktreeWait": false,
   "projectActions": [
     { "id": "dev", "name": "Dev", "command": "bun run dev --no-open", "icon": "rocket" },
