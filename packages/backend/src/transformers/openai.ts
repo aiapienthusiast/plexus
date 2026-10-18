@@ -7,6 +7,36 @@ import { GEMINI_MALFORMED_FUNCTION_CALL_CODE } from '../utils/gemini-malformed-f
 import { composeContentWithImageMarkdown } from './image-rendering';
 
 /**
+ * Normalizes a Chat Completions `response_format` into the unified shape
+ * (`json_schema` holds the raw schema; `name`/`description`/`strict` are
+ * siblings — see types/unified.ts and the Responses request-parser).
+ *
+ * The standard `json_schema` spelling nests the schema under
+ * `json_schema.schema`; a bare schema object (some gateways forward it
+ * unwrapped) is accepted as-is. Descriptor fields the client omitted stay
+ * absent so emitters can apply their own fallbacks. Returns `undefined` when
+ * the client sent nothing usable, so the caller can keep the key off the
+ * unified request entirely.
+ */
+function normalizeChatResponseFormat(
+  input: any
+): UnifiedChatRequest['response_format'] | undefined {
+  if (!input || typeof input !== 'object' || typeof input.type !== 'string') return undefined;
+  if (input.type !== 'json_schema') {
+    return { type: input.type as 'text' | 'json_object' | 'json_schema' };
+  }
+  const js = input.json_schema;
+  if (!js || typeof js !== 'object') return { type: 'json_schema', json_schema: js };
+  return {
+    type: 'json_schema',
+    json_schema: js.schema ?? js,
+    ...(js.name !== undefined ? { name: js.name } : {}),
+    ...(js.description !== undefined ? { description: js.description } : {}),
+    ...(js.strict !== undefined ? { strict: js.strict } : {}),
+  };
+}
+
+/**
  * OpenAITransformer
  */
 export class OpenAITransformer implements Transformer {
@@ -68,6 +98,20 @@ export class OpenAITransformer implements Transformer {
           ? legacy
           : undefined;
 
+    // Normalize `response_format` onto the unified request using the same shape
+    // the Responses parser produces (`json_schema` holds the raw schema;
+    // `name`/`description`/`strict` are siblings) so every downstream builder
+    // (chat, responses, Anthropic, Gemini) can translate it. Without this the
+    // field is silently dropped on all cross-format routes (chat -> responses,
+    // chat -> messages, chat -> gemini). Chat -> chat additionally preserves
+    // the client descriptor verbatim via the `originalBody` fast path in
+    // transformRequest below — the normalization here feeds the cross-format
+    // rebuilds, not the same-format echo.
+    // Conditional spread keeps the key absent (not `response_format:
+    // undefined`) when the client sent nothing — downstream `in`-checks must
+    // not see a phantom key.
+    const responseFormat = normalizeChatResponseFormat(input.response_format);
+
     return {
       messages,
       model: input.model,
@@ -77,6 +121,7 @@ export class OpenAITransformer implements Transformer {
       tools: input.tools,
       tool_choice: input.tool_choice,
       reasoning: input.reasoning,
+      ...(responseFormat !== undefined ? { response_format: responseFormat } : {}),
     };
   }
 
@@ -152,14 +197,28 @@ export class OpenAITransformer implements Transformer {
     out.tools = normalizedTools && normalizedTools.length > 0 ? normalizedTools : undefined;
     out.tool_choice = request.tool_choice;
 
-    if (request.response_format) {
-      if (request.response_format.type === 'json_schema' && request.response_format.json_schema) {
-        // OpenAI json_schema mode requires {name, schema, strict} wrapping.
-        // The client-supplied descriptor (carried on the unified
-        // response_format — see types/unified.ts) wins; the fabricated
-        // `response_schema` / `strict: true` values are fallbacks ONLY for
-        // clients that omitted them (`?? `— an explicit strict: false must
-        // survive).
+    // Same-format fast path (chat -> chat): the client's `response_format`
+    // is already in `out` via the `originalBody` spread above — leave it
+    // byte-identical. Rebuilding from the unified shape would be lossy even
+    // though it no longer fabricates `strict`: a bare/unwrapped schema would
+    // get re-wrapped with a fabricated `name`, unknown keys inside the
+    // descriptor would be dropped, and key order would not survive. The
+    // rebuild below runs ONLY when the original body carries no descriptor
+    // — i.e. cross-format routes (messages/responses -> chat), where the
+    // wire shape must be reconstructed, or middleware injected a unified
+    // `response_format` the client never sent.
+    const sameFormatHasDescriptor =
+      isSameApiType && (request.originalBody as any)?.response_format !== undefined;
+    if (request.response_format && !sameFormatHasDescriptor) {
+      if (
+        request.response_format.type === 'json_schema' &&
+        request.response_format.json_schema !== undefined
+      ) {
+        // OpenAI json_schema mode requires {name, schema} wrapping. `name`
+        // gets a fabricated fallback (upstream 400s without it); `strict`
+        // is emitted ONLY when the client set it explicitly — omitting it
+        // preserves the upstream default (`false`), since strict mode
+        // rejects schemas with optional properties.
         out.response_format = {
           type: 'json_schema',
           json_schema: {
@@ -168,7 +227,9 @@ export class OpenAITransformer implements Transformer {
               ? { description: request.response_format.description }
               : {}),
             schema: request.response_format.json_schema,
-            strict: request.response_format.strict ?? true,
+            ...(request.response_format.strict !== undefined
+              ? { strict: request.response_format.strict }
+              : {}),
           },
         };
       } else {

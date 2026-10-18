@@ -132,12 +132,39 @@ export async function buildResponsesRequest(request: UnifiedChatRequest): Promis
   if (request.text) {
     payload.text = request.text;
   } else if (request.response_format) {
-    payload.text = {
-      format: {
-        type: request.response_format.type,
-        schema: request.response_format.json_schema,
-      },
-    };
+    if (
+      request.response_format.type === 'json_schema' &&
+      request.response_format.json_schema !== undefined
+    ) {
+      // Rebuild the full structured-output descriptor: the unified shape
+      // carries `name`/`description`/`strict` as siblings (see
+      // request-parser.ts), and the Responses wire shape needs them back
+      // inside `text.format`. `name` gets a fabricated fallback (upstream
+      // 400s without it); `strict` is emitted ONLY when the client set it
+      // explicitly — omitting it preserves the upstream default (`false`),
+      // since strict mode rejects schemas with optional properties. An
+      // Anthropic-originated schema (parser never sets `strict`) therefore
+      // stays non-strict instead of 400ing.
+      payload.text = {
+        format: {
+          type: 'json_schema',
+          name: request.response_format.name ?? 'response_schema',
+          ...(request.response_format.description !== undefined
+            ? { description: request.response_format.description }
+            : {}),
+          ...(request.response_format.strict !== undefined
+            ? { strict: request.response_format.strict }
+            : {}),
+          schema: request.response_format.json_schema,
+        },
+      };
+    } else {
+      payload.text = {
+        format: {
+          type: request.response_format.type,
+        },
+      };
+    }
   }
 
   // For same-format (responses -> responses) requests that take the
