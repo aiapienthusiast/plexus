@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight, Plus, Trash2, AlertTriangle } from 'lucide-r
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import type { Provider } from '../../lib/api';
+import type { OAuthProvidersStatus } from '../../hooks/useProviderForm';
 import { switchConnectionMode, type ConnectionDraftMap } from '../../lib/providerConnectionDraft';
 
 const KNOWN_APIS = [
@@ -30,6 +31,10 @@ interface Props {
   editingProvider: Provider;
   setEditingProvider: React.Dispatch<React.SetStateAction<Provider>>;
   OAUTH_PROVIDERS: Array<{ value: string; label: string }>;
+  /** Load state of the OAuth provider list, so loading/error/empty render differently. */
+  oauthProvidersStatus: OAuthProvidersStatus;
+  /** Refetch the OAuth provider list after a load failure. */
+  onReloadOAuthProviders: () => void;
   isApiBaseUrlsOpen: boolean;
   setIsApiBaseUrlsOpen: (v: boolean) => void;
   /** Compact Apply Preset action shown beside the URL/OAuth toggle (URL mode only). */
@@ -47,6 +52,8 @@ export function ProviderApiUrlsEditor({
   editingProvider,
   setEditingProvider,
   OAUTH_PROVIDERS,
+  oauthProvidersStatus,
+  onReloadOAuthProviders,
   isApiBaseUrlsOpen,
   setIsApiBaseUrlsOpen,
   presetAction,
@@ -115,7 +122,8 @@ export function ProviderApiUrlsEditor({
             </label>
             <select
               className="w-full h-[27px] py-0 px-2 font-body text-[12px] leading-none text-text bg-bg-glass border border-border-glass rounded-sm outline-none focus:border-primary"
-              value={editingProvider.oauthProvider || OAUTH_PROVIDERS[0].value}
+              value={(editingProvider.oauthProvider || OAUTH_PROVIDERS[0]?.value) ?? ''}
+              disabled={OAUTH_PROVIDERS.length === 0}
               onChange={(e) =>
                 setEditingProvider({ ...editingProvider, oauthProvider: e.target.value })
               }
@@ -126,6 +134,19 @@ export function ProviderApiUrlsEditor({
                 </option>
               ))}
             </select>
+            {oauthProvidersStatus === 'loading' && (
+              <div className="text-[11px] text-text-secondary" style={{ fontStyle: 'italic' }}>
+                Loading OAuth providers…
+              </div>
+            )}
+            {oauthProvidersStatus === 'error' && (
+              <div className="text-[11px] text-warning">
+                Failed to load OAuth providers.{' '}
+                <button type="button" className="underline" onClick={onReloadOAuthProviders}>
+                  Retry
+                </button>
+              </div>
+            )}
           </div>
           <div className="text-[11px] text-text-secondary" style={{ lineHeight: '1.5' }}>
             Uses the provider ID as its OAuth account — one login per provider.
