@@ -1,7 +1,12 @@
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 
-import type { Alias, AliasBehavior, CompactionSettings } from '../../lib/api';
+import type {
+  Alias,
+  AliasBehavior,
+  CompactionSettings,
+  InjectCacheControlBehavior,
+} from '../../lib/api';
 import { Badge } from '../ui/Badge';
 import { DebouncedInput } from '../ui/DebouncedInput';
 import { Switch } from '../ui/Switch';
@@ -11,6 +16,12 @@ interface Props {
   editingAlias: Alias;
   setEditingAlias: React.Dispatch<React.SetStateAction<Alias>>;
 }
+
+/**
+ * Prompt-cache behavior state: `auto` leaves the behavior out entirely (the
+ * backend enables it on Anthropic-owned targets only), `on`/`off` are explicit.
+ */
+type CacheControlMode = 'auto' | 'on' | 'off';
 
 export function ModelBehaviorsEditor({ editingAlias, setEditingAlias }: Props) {
   const [isOpen, setIsOpen] = useState(false);
@@ -26,6 +37,45 @@ export function ModelBehaviorsEditor({ editingAlias, setEditingAlias }: Props) {
     const next: AliasBehavior[] = enabled
       ? [...without, { type, enabled: true } as AliasBehavior]
       : without;
+    setEditingAlias({ ...editingAlias, advanced: next });
+  };
+
+  const cacheControlBehavior = (editingAlias.advanced ?? []).find(
+    (b): b is InjectCacheControlBehavior => b.type === 'inject_cache_control'
+  );
+
+  // Three states: absent = auto (the backend enables it on Anthropic-owned
+  // targets only), explicitly on, or explicitly off. Sub-fields are only
+  // editable while it is explicitly on, so editing a value can never silently
+  // force it on for an upstream that rejects cache_control.
+  const cacheControlMode: CacheControlMode = !cacheControlBehavior
+    ? 'auto'
+    : cacheControlBehavior.enabled === false
+      ? 'off'
+      : 'on';
+
+  const updateCacheControl = (patch: Partial<InjectCacheControlBehavior>) => {
+    const next: AliasBehavior[] = (editingAlias.advanced ?? []).map((b) =>
+      b.type === 'inject_cache_control' ? { ...b, ...patch } : b
+    );
+    setEditingAlias({ ...editingAlias, advanced: next });
+  };
+
+  const setCacheControlMode = (mode: CacheControlMode) => {
+    const current = editingAlias.advanced ?? [];
+    if (mode === 'auto') {
+      setEditingAlias({
+        ...editingAlias,
+        advanced: current.filter((b) => b.type !== 'inject_cache_control'),
+      });
+      return;
+    }
+
+    const enabled = mode === 'on';
+    const hasEntry = current.some((b) => b.type === 'inject_cache_control');
+    const next: AliasBehavior[] = hasEntry
+      ? current.map((b) => (b.type === 'inject_cache_control' ? { ...b, enabled } : b))
+      : [...current, { type: 'inject_cache_control', enabled }];
     setEditingAlias({ ...editingAlias, advanced: next });
   };
 
@@ -73,6 +123,73 @@ export function ModelBehaviorsEditor({ editingAlias, setEditingAlias }: Props) {
                 size="sm"
               />
             </div>
+
+            <div className="flex items-start justify-between gap-3 py-1">
+              <div>
+                <span className="font-body text-text text-[13px]">Prompt Cache Breakpoints</span>
+                <p className="font-body text-text-muted mt-0.5 text-[11px]">
+                  Add Anthropic <code className="text-primary">cache_control</code> breakpoints to
+                  chat/responses requests that are translated to the Messages API: last tool, last
+                  system block, and the conversation tail. Without them, translated requests never
+                  hit the prompt cache. <strong>Auto</strong> enables it where the target is
+                  Anthropic&apos;s own API; <strong>On</strong> forces it for other Messages-
+                  compatible upstreams (only where they accept{' '}
+                  <code className="text-primary">cache_control</code>), and <strong>Off</strong>{' '}
+                  disables it. Native Messages clients keep their own breakpoints.
+                </p>
+              </div>
+              <select
+                aria-label="Prompt cache breakpoints"
+                className="font-body text-text bg-bg-glass border-border-glass focus:border-primary mt-0.5 shrink-0 rounded-sm border py-1 pr-2 pl-2 text-[12px] outline-none"
+                value={cacheControlMode}
+                onChange={(e) => setCacheControlMode(e.target.value as CacheControlMode)}
+              >
+                <option value="auto">Auto</option>
+                <option value="on">On</option>
+                <option value="off">Off</option>
+              </select>
+            </div>
+
+            {cacheControlMode === 'on' && (
+              <div className="grid grid-cols-2 gap-1.5 pb-1">
+                <div>
+                  <label className="font-body text-text-secondary mb-1 block text-[11px] font-medium">
+                    Cache TTL
+                  </label>
+                  <select
+                    className="font-body text-text bg-bg-glass border-border-glass focus:border-primary w-full rounded-sm border py-1 pr-2 pl-2 text-[12px] outline-none"
+                    value={cacheControlBehavior?.ttl ?? ''}
+                    onChange={(e) =>
+                      updateCacheControl({
+                        ttl: e.target.value === '' ? undefined : (e.target.value as '5m' | '1h'),
+                      })
+                    }
+                  >
+                    <option value="">Default (5m)</option>
+                    <option value="1h">1 hour (2x write)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="font-body text-text-secondary mb-1 block text-[11px] font-medium">
+                    Trailing breakpoints
+                    <span className="text-text-muted ml-1 text-[10px] font-normal">0–4</span>
+                  </label>
+                  <select
+                    className="font-body text-text bg-bg-glass border-border-glass focus:border-primary w-full rounded-sm border py-1 pr-2 pl-2 text-[12px] outline-none"
+                    value={String(cacheControlBehavior?.message_breakpoints ?? 2)}
+                    onChange={(e) =>
+                      updateCacheControl({ message_breakpoints: Number(e.target.value) })
+                    }
+                  >
+                    <option value="0">0 (static prefix only)</option>
+                    <option value="1">1 (current turn)</option>
+                    <option value="2">2 (current + previous)</option>
+                    <option value="3">3 (current + previous 2)</option>
+                    <option value="4">4 (current + previous 3)</option>
+                  </select>
+                </div>
+              </div>
+            )}
 
             <div className="flex items-center justify-between py-1">
               <div>
