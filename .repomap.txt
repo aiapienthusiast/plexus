@@ -1114,8 +1114,10 @@ packages/backend/src/services/quota/checkers/routing-run-checker.ts:5 [interface
 packages/backend/src/services/quota/checkers/sakana-checker.ts:14 [function] extractUsageWindow
 packages/backend/src/services/quota/checkers/sakana-checker.ts:39 [function] extractCreditBalance
 packages/backend/src/services/quota/checkers/sakana-checker.ts:9 [interface] UsageWindow
-packages/backend/src/services/quota/checkers/synthetic-checker.ts:26 [function] parseCredits
-packages/backend/src/services/quota/checkers/synthetic-checker.ts:5 [interface] SyntheticQuotaResponse
+packages/backend/src/services/quota/checkers/synthetic-checker.ts:11 [interface] SyntheticQuotaResponse
+packages/backend/src/services/quota/checkers/synthetic-checker.ts:28 [function] parsePercent
+packages/backend/src/services/quota/checkers/synthetic-checker.ts:33 [function] toIsoDate
+packages/backend/src/services/quota/checkers/synthetic-checker.ts:5 [interface] SyntheticWeeklyPercentLimit
 packages/backend/src/services/quota/checkers/wisdomgate-checker.ts:6 [interface] WisdomGateUsageResponse
 packages/backend/src/services/quota/checkers/zai-checker.ts:15 [interface] ZAIQuotaResponse
 packages/backend/src/services/quota/checkers/zai-checker.ts:6 [interface] ZAILimit
