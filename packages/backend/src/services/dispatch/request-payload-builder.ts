@@ -79,6 +79,27 @@ export function applyAutoAnthropicBetas(
   headers[existingKey ?? 'anthropic-beta'] = betas.join(',');
 }
 
+/**
+ * Drop Anthropic mid-conversation `role: 'system'` entries for egress formats
+ * that have no in-conversation system concept.
+ *
+ * Those entries are marked by the Messages parser so a rebuilt Messages request
+ * can re-emit the caller's own entry verbatim at its position. Other wire
+ * formats cannot express a system turn mid-conversation, and folding the
+ * content into the target's system prompt would rewrite the caller's prompt,
+ * so cross-format egress drops them deliberately — the same documented-drop
+ * convention used for other Anthropic-native fields the target cannot express.
+ * The per-turn effort they carry is not lost: it already travelled to the
+ * target on `request.reasoning` (see getMidConversationEffort).
+ */
+export function dropMidConversationEntries(request: UnifiedChatRequest): UnifiedChatRequest {
+  if (!request.messages?.some((message) => message.mid_conversation)) return request;
+  return {
+    ...request,
+    messages: request.messages.filter((message) => !message.mid_conversation),
+  };
+}
+
 function shouldUsePassThrough(
   request: UnifiedChatRequest,
   targetApiType: string,
@@ -198,7 +219,14 @@ export async function buildRequestPayload(
           },
         }
       : request;
-    payload = await transformer.transformRequest(requestWithOAuthProvider);
+    // Same-format Messages egress keeps the mid-conversation markers so the
+    // builder can re-emit the caller's entries in place; every other target
+    // deliberately drops them (see dropMidConversationEntries).
+    const requestForTransform =
+      getApiBaseType(targetApiType) === 'messages'
+        ? requestWithOAuthProvider
+        : dropMidConversationEntries(requestWithOAuthProvider);
+    payload = await transformer.transformRequest(requestForTransform);
   }
 
   // Claude genuine-client fast-path. Masking only exists on the native
