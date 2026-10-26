@@ -1192,11 +1192,12 @@ packages/backend/src/services/pi-ai/reasoning.ts:106 [function] effortToBudget
 packages/backend/src/services/pi-ai/reasoning.ts:117 [function] budgetToEffort
 packages/backend/src/services/pi-ai/reasoning.ts:128 [function] normalizeEffort
 packages/backend/src/services/pi-ai/reasoning.ts:156 [function] reasoningIntentToLogValue
-packages/backend/src/services/pi-ai/reasoning.ts:181 [function] getReasoningLogValue
-packages/backend/src/services/pi-ai/reasoning.ts:299 [function] normalizeVisibility
-packages/backend/src/services/pi-ai/reasoning.ts:325 [function] clampEffortToWindow
-packages/backend/src/services/pi-ai/reasoning.ts:355 [function] intentToEffort
-packages/backend/src/services/pi-ai/reasoning.ts:373 [function] splitReasoningSuffix
+packages/backend/src/services/pi-ai/reasoning.ts:195 [function] getMidConversationEffort
+packages/backend/src/services/pi-ai/reasoning.ts:211 [function] getReasoningLogValue
+packages/backend/src/services/pi-ai/reasoning.ts:335 [function] normalizeVisibility
+packages/backend/src/services/pi-ai/reasoning.ts:361 [function] clampEffortToWindow
+packages/backend/src/services/pi-ai/reasoning.ts:391 [function] intentToEffort
+packages/backend/src/services/pi-ai/reasoning.ts:409 [function] splitReasoningSuffix
 packages/backend/src/services/pi-ai/reasoning.ts:43 [interface] ReasoningIntent
 packages/backend/src/services/pi-ai/registry.ts:119 [function] modelSupportsDisable
 packages/backend/src/services/pi-ai/registry.ts:125 [function] buildReasoningOptionsForModel
