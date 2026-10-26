@@ -675,7 +675,7 @@ packages/backend/src/services/dispatch/request-manager.ts:74 [method] RequestMan
 packages/backend/src/services/dispatch/request-payload-builder.ts:103 [function] shouldUsePassThrough
 packages/backend/src/services/dispatch/request-payload-builder.ts:133 [function] buildRequestPayload
 packages/backend/src/services/dispatch/request-payload-builder.ts:43 [function] isNativeOAuthRoute
-packages/backend/src/services/dispatch/request-payload-builder.ts:452 [function] refreshOAuthRoute
+packages/backend/src/services/dispatch/request-payload-builder.ts:448 [function] refreshOAuthRoute
 packages/backend/src/services/dispatch/request-payload-builder.ts:50 [interface] RequestPayload
 packages/backend/src/services/dispatch/request-payload-builder.ts:63 [function] applyAutoAnthropicBetas
 packages/backend/src/services/dispatch/request-payload-builder.ts:95 [function] dropMidConversationEntries
