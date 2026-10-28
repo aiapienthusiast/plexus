@@ -211,6 +211,28 @@ describe('built-in presets catalog (data/provider-presets.json)', () => {
     const messages = project('messages', { max_tokens: 4000, reasoning_effort: 'low' });
     expect(messages.thinking).toMatchObject({ type: 'enabled', budget_tokens: 2048 });
   });
+
+  test('cheaperinference serves every protocol from one /v1 base with no quirk source', () => {
+    const cheaperInference = presetOrThrow('cheaperinference');
+    expect(cheaperInference.piAiProvider).toBeUndefined();
+    expect(cheaperInference.piAiQuirks).toBeUndefined();
+    expect(cheaperInference.autoCompat).toBe(false);
+    // Plexus appends /messages, and Cheaper Inference serves Anthropic messages at /v1/messages.
+    expect(cheaperInference.apiBaseUrl).toEqual({
+      chat: 'https://api.cheaperinference.com/v1',
+      completions: 'https://api.cheaperinference.com/v1',
+      messages: 'https://api.cheaperinference.com/v1',
+      responses: 'https://api.cheaperinference.com/v1',
+      embeddings: 'https://api.cheaperinference.com/v1',
+    });
+
+    const applied = applyProviderPreset(blankDraft(), cheaperInference);
+    expect(applied.id).toBe('cheaperinference');
+    expect(applied.name).toBe('Cheaper Inference');
+    expect(applied.type).toEqual(['chat', 'completions', 'messages', 'responses', 'embeddings']);
+    expect(applied.pi_ai_provider).toBeUndefined();
+    expect(applied.pi_ai_quirks).toBeUndefined();
+  });
 });
 
 describe('service tier preset seeds', () => {
